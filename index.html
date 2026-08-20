@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotina — Alimentação &amp; Treino</title>
+<style>
+:root{
+  --bg:#18181b; --surface:#232327; --surface2:#2c2c31; --border:#2e2e33;
+  --text:#f4f4f5; --text2:#a1a1aa; --muted:#6b6b68;
+  --accent:#d9703e; --accent-bg:#2a2018; --gold:#c99d5b; --gold-bg:#2a2418;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;padding:1rem 1rem 2.5rem}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+h1{font-size:1.35rem;font-weight:700;letter-spacing:-.02em}
+.sub{font-size:.75rem;color:var(--muted)}
+.streak{display:flex;align-items:center;gap:4px;font-size:.85rem;font-weight:600;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:.3rem .7rem}
+.daynav{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.6rem .8rem;margin-bottom:.9rem}
+.daynav button{width:34px;height:34px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:1.1rem;cursor:pointer}
+.daynav .info{text-align:center}
+.daynav .day{font-weight:600;font-size:.95rem}
+.daynav .date{font-size:.75rem;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem .8rem}
+.stat .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stat .value{font-size:1.3rem;font-weight:700;margin:.1rem 0 .3rem}
+.stat .value .of{font-size:.85rem;color:var(--muted);font-weight:500}
+.bar{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--accent);border-radius:3px;width:0;transition:width .3s}
+.week{display:flex;gap:6px;justify-content:space-between;margin-bottom:1rem}
+.dot{flex:1;aspect-ratio:1;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--muted);cursor:pointer}
+.dot.done{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.dot.today{box-shadow:0 0 0 2px var(--accent)}
+h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:1rem 0 .5rem}
+.item{display:flex;align-items:center;gap:.7rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.7rem .8rem;margin-bottom:.5rem;cursor:pointer;transition:border-color .15s}
+.item.done{opacity:.55}
+.item.done .name{text-decoration:line-through}
+.check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.8rem;color:transparent;transition:all .15s}
+.item.done .check{background:var(--accent);border-color:var(--accent);color:#fff}
+.item .body{flex:1;min-width:0}
+.item .name{font-size:.92rem;font-weight:550}
+.item .meta{font-size:.74rem;color:var(--muted)}
+.item .time{font-size:.72rem;color:var(--accent);font-weight:600;flex-shrink:0}
+details{margin-top:.2rem}
+summary{font-size:.74rem;color:var(--accent);cursor:pointer;list-style:none}
+summary::before{content:'ℹ️ '}
+details p{font-size:.78rem;color:var(--text2);margin-top:.3rem;line-height:1.45}
+.rest{text-align:center;color:var(--muted);font-size:.85rem;padding:1.5rem 0}
+footer{text-align:center;font-size:.72rem;color:var(--muted);margin-top:1.5rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Rotina</h1>
+      <div class="sub">alimentação &amp; treino</div>
+    </div>
+    <div class="streak" id="streak" style="display:none">🔥 <span id="streakN">0</span></div>
+  </header>
+
+  <div class="daynav">
+    <button id="prev">‹</button>
+    <div class="info"><div class="day" id="dayLabel"></div><div class="date" id="dateLabel"></div></div>
+    <button id="next">›</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Refeições</div><div class="value" id="mealN">0 <span class="of">/6</span></div><div class="bar"><span id="mealBar"></span></div></div>
+    <div class="stat"><div class="label">Exercícios</div><div class="value" id="exN">0 <span class="of">/0</span></div><div class="bar"><span id="exBar"></span></div></div>
+  </div>
+
+  <div class="week" id="week"></div>
+
+  <h2>🍽️ Alimentação</h2>
+  <div id="meals"></div>
+
+  <h2>💪 Treino</h2>
+  <div id="ex"></div>
+
+  <footer>Guardado neste dispositivo · funciona offline</footer>
+</div>
+
+<script>
+const MEALS=[
+ {id:'m1',t:'08:30',n:'Sandes (2 ovos + queijo) + leite + banana'},
+ {id:'m2',t:'11:00',n:'Iogurte grego, mel e banana'},
+ {id:'m3',t:'13:30',n:'Almoço: frango/peixe + arroz + legumes'},
+ {id:'m4',t:'16:30',n:'Pós-treino: sandes de atum + banana'},
+ {id:'m5',t:'19:00',n:'Sandes (2 ovos + queijo) + iogurte proteico'},
+ {id:'m6',t:'20:30',n:'Jantar em família'}
+];
+const EX={
+ e1:{n:'Flexões Normais',d:'Seg · Peito & Tríceps',s:'3× máx (pára 2 antes de falhar)',r:'90s',h:'Mãos na largura dos ombros, corpo reto. Desce até quase tocar o chão e sobe com força.'},
+ e2:{n:'Flexões Declinadas (pés na cama)',d:'Seg · Peito & Tríceps',s:'3× máx',r:'90s',h:'Pés na cama, mãos no chão. Desce o peito controlado e empurra.'},
+ e3:{n:'Fundos na Cadeira (Dips)',d:'Seg · Peito & Tríceps',s:'3× 12-15',r:'60s',h:'De costas para a cadeira, palmas na borda, dobra cotovelos até 90º e sobe.'},
+ e4:{n:'Flexões Diamante (joelhos)',d:'Seg · Peito & Tríceps',s:'2× 10-12',r:'60s',h:'Mãos juntas em triângulo, joelhos apoiados. Desce e sobe.'},
+ e5:{n:'Remada debaixo da Mesa',d:'Ter · Costas & Bíceps',s:'3× máx',r:'90s',h:'Deitado debaixo da mesa, agarra a borda e puxa o peito até a madeira.'},
+ e6:{n:'Remada Unilateral c/ Mochila',d:'Ter · Costas & Bíceps',s:'3× 12-15 (cada braço)',r:'60s',h:'Joelho e mão apoiados na cadeira, puxa a mochila até a anca.'},
+ e7:{n:'Rosca Bíceps c/ Mochila',d:'Ter · Costas & Bíceps',s:'3× 12-15',r:'60s',h:'Cotovelos colados às costelas, dobra os braços para subir a mochila.'},
+ e8:{n:'Super-Homem (Y-Raises)',d:'Ter · Costas & Bíceps',s:'3× 15',r:'60s',h:'De barriga para baixo, braços em Y. Levanta peito e braços, aperta 2s, desce.'},
+ e9:{n:'Agachamento Búlgaro',d:'Qua · Pernas & Core',s:'3× 10-12 (cada perna)',r:'60s',h:'Pé de trás na cadeira, agacha com a perna da frente.'},
+ e10:{n:'Elevação de Gémeos Unilateral',d:'Qua · Pernas & Core',s:'3× 15-20 (cada perna)',r:'45s',h:'Apoia numa perna, sobe na ponta do pé, segura 1s e desce lento.'},
+ e11:{n:'Prancha Abdominal',d:'Qua · Pernas & Core',s:'3× máx tempo (tenta +1min)',r:'60s',h:'Antebraços e pontas dos pés. Contrai barriga e glúteos, não deixa a bacia cair.'},
+ e12:{n:'Abdominais Bicicleta',d:'Qua · Pernas & Core',s:'3× 30-40s',r:'45s',h:'Cotovelo direito ao joelho esquerdo, alterna os lados.'},
+ e13:{n:'Flexões Declinadas (pés na cama)',d:'Qui · Peito & Ombros',s:'3× máx',r:'90s',h:'Pés na cama, mãos no chão. Desce e empurra.'},
+ e14:{n:'Flexões Mãos Bem Abertas',d:'Qui · Peito & Ombros',s:'3× máx',r:'90s',h:'Mãos bem mais afastadas que o normal. Desce devagar e empurra.'},
+ e15:{n:'Pike Push-ups (ombros)',d:'Qui · Peito & Ombros',s:'3× 8-10',r:'90s',h:'Bacia para o ar em V invertido. Desce a cabeça entre as mãos e empurra.'},
+ e16:{n:'Elevações Laterais c/ Garrafas',d:'Qui · Peito & Ombros',s:'4× 15-20 (lentas)',r:'60s',h:'Eleva os braços para os lados até a altura dos ombros, desce controlado.'},
+ e17:{n:'Remada Invertida (pegada supinada)',d:'Sex · Costas & Braços',s:'3× máx',r:'90s',h:'Como a remada na mesa, mas com as palmas viradas para ti.'},
+ e18:{n:'Remada Curvada c/ Mochila',d:'Sex · Costas & Braços',s:'3× 12-15',r:'60s',h:'Tronco inclinado, costas direitas. Puxa a mochila contra o umbigo.'},
+ e19:{n:'Rosca Martelo c/ Garrafas',d:'Sex · Costas & Braços',s:'3× 15',r:'60s',h:'Palmas viradas uma para a outra, sobe as garrafas sem rodar os pulsos.'},
+ e20:{n:'Super-Homem Isométrico',d:'Sex · Costas & Braços',s:'3× 30-45s',r:'60s',h:'Levanta peito e pernas juntos e mantém congelado na posição mais alta.'}
+};
+const BY_DAY={0:[],1:['e1','e2','e3','e4'],2:['e5','e6','e7','e8'],3:['e9','e10','e11','e12'],4:['e13','e14','e15','e16'],5:['e17','e18','e19','e20'],6:[]};
+const DAYS=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+const DSHORT=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+let current=new Date(); current.setHours(0,0,0,0);
+const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const key=d=>'log:'+dstr(d);
+const load=d=>{try{return JSON.parse(localStorage.getItem(key(d)))||{}}catch{return{}}};
+const save=(d,s)=>localStorage.setItem(key(d),JSON.stringify(s));
+
+function toggle(id){const s=load(current);s[id]=!s[id];save(current,s);render();}
+
+function streak(){
+ let n=0;const t=new Date();t.setHours(0,0,0,0);
+ for(let i=0;i<60;i++){const d=new Date(t);d.setDate(d.getDate()-i);
+  const done=MEALS.filter(m=>load(d)[m.id]).length;
+  if(i===0&&done<5)continue; if(done>=5)n++;else break;}
+ return n;
+}
+function dayDone(d){return MEALS.filter(m=>load(d)[m.id]).length>=5;}
+
+function render(){
+ const st=load(current);
+ document.getElementById('dayLabel').textContent=DAYS[current.getDay()];
+ document.getElementById('dateLabel').textContent=current.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+ // meals
+ const mp=document.getElementById('meals');mp.innerHTML='';
+ let md=0;
+ MEALS.forEach(m=>{if(st[m.id])md++;
+  const el=document.createElement('div');el.className='item'+(st[m.id]?' done':'');
+  el.innerHTML='<div class="check">✓</div><div class="body"><div class="name">'+m.n+'</div></div><div class="time">'+m.t+'</div>';
+  el.onclick=()=>toggle(m.id);mp.appendChild(el);});
+ document.getElementById('mealN').innerHTML=md+' <span class="of">/6</span>';
+ document.getElementById('mealBar').style.width=(md/6*100)+'%';
+ // exercises
+ const ids=BY_DAY[current.getDay()]||[];
+ const ep=document.getElementById('ex');ep.innerHTML='';
+ let ed=0;
+ if(ids.length){ids.forEach(id=>{const x=EX[id];if(st[id])ed++;
+  const el=document.createElement('div');el.className='item'+(st[id]?' done':'');
+  el.innerHTML='<div class="check">✓</div><div class="body"><div class="name">'+x.n+'</div><div class="meta">'+x.s+' · descanso '+x.r+'</div><details><summary>como fazer</summary><p>'+x.h+'</p></details></div>';
+  const ck=el.querySelector('.check');ck.onclick=e=>{e.stopPropagation();toggle(id);};
+  el.onclick=e=>{if(e.target.closest('details'))return;toggle(id);};
+  ep.appendChild(el);});}
+ else{ep.innerHTML='<div class="rest">Dia de descanso 💤<br>Sem treino de força hoje.</div>';}
+ document.getElementById('exN').innerHTML=ed+' <span class="of">/'+(ids.length||0)+'</span>';
+ document.getElementById('exBar').style.width=(ids.length?(ed/ids.length*100):0)+'%';
+ // streak
+ const s=streak();document.getElementById('streakN').textContent=s;
+ document.getElementById('streak').style.display=s>0?'flex':'none';
+ // week
+ const wk=document.getElementById('week');wk.innerHTML='';
+ const t=new Date();t.setHours(0,0,0,0);
+ for(let i=6;i>=0;i--){const d=new Date(t);d.setDate(d.getDate()-i);
+  const dot=document.createElement('div');dot.className='dot'+(dayDone(d)?' done':'')+(dstr(d)===dstr(t)?' today':'');
+  dot.textContent=DSHORT[d.getDay()].charAt(0);dot.title=DSHORT[d.getDay()];
+  dot.onclick=()=>{current=new Date(d);render();};wk.appendChild(dot);}
+}
+document.getElementById('prev').onclick=()=>{current.setDate(current.getDate()-1);render();};
+document.getElementById('next').onclick=()=>{current.setDate(current.getDate()+1);render();};
+render();
+</script>
+</body>
+</html>
